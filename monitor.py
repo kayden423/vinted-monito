@@ -2,8 +2,8 @@ import requests
 import time
 from discord_webhook import DiscordWebhook
 
-WEBHOOK_URL = "https://discord.com/api/webhooks/1378744766937698499/v2V1YYqck0WF-V0VIg25t5Qw1CjkGkj0br0ttvJ8PddmWgHaB1KhwN1eXB5ZHalpqabA"
-UPTIMEROBOT_PING_URL = ""  # Optional: add your UptimeRobot ping URL here
+WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK"
+UPTIMEROBOT_PING_URL = ""  # Optional
 
 KEYWORDS = [
     "nike dunks", "nike p-6000s", "nike air force 1", "nike reacts",
@@ -44,48 +44,55 @@ def search_vinted(keyword, page=1):
         "order": "newest_first",
         "page": page
     }
+
     headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Referer": "https://www.vinted.co.uk/",
+        "Origin": "https://www.vinted.co.uk"
     }
 
-    try:
-        response = requests.get(url, params=params, headers=headers)
-        if response.status_code != 200:
-            print(f"⚠️ Vinted returned {response.status_code}: {response.text[:200]}")
-            return []
-        return response.json().get("items", [])
-    except Exception as e:
-        print("❌ Error fetching from Vinted:", e)
+    response = requests.get(url, params=params, headers=headers)
+    if response.status_code != 200:
+        print(f"⚠️ Vinted returned {response.status_code}: {response.text[:200]}")
         return []
+    return response.json().get("items", [])
 
 def send_to_discord(item):
+    item_id = item["id"]
+    if item_id in sent_ids:
+        return
+    sent_ids.add(item_id)
+
     title = item["title"]
     price = item["price"]
-    url = f'https://www.vinted.co.uk{item["url"]}'
-    image = item["photo"]["url"]
+    url = f"https://www.vinted.co.uk{item['url']}"
+    photo = item["photo"]["url"]
 
-    webhook = DiscordWebhook(url=WEBHOOK_URL, content=f"**{title}** - £{price} \n{url}")
-    webhook.add_file(file=requests.get(image).content, filename='image.jpg')
+    print(f"✅ Found: {title} - £{price} - {url}")
+
+    webhook = DiscordWebhook(
+        url=WEBHOOK_URL,
+        content=f"**{title}** - £{price}\n{url}",
+        username="Vinted Monitor",
+        avatar_url=photo
+    )
     webhook.execute()
 
-def ping_uptime_robot():
-    if UPTIMEROBOT_PING_URL:
-        try:
-            requests.get(UPTIMEROBOT_PING_URL)
-        except Exception as e:
-            print("⚠️ Failed to ping UptimeRobot:", e)
-
 def main():
-    print("✅ Vinted monitor started.")
     while True:
-        for keyword in KEYWORDS:
-            items = search_vinted(keyword)
-            for item in items:
-                if item["id"] not in sent_ids:
+        try:
+            for keyword in KEYWORDS:
+                items = search_vinted(keyword)
+                for item in items:
                     send_to_discord(item)
-                    sent_ids.add(item["id"])
-        ping_uptime_robot()
+
+            if UPTIMEROBOT_PING_URL:
+                requests.get(UPTIMEROBOT_PING_URL)
+
+        except Exception as e:
+            print(f"❌ Error: {e}")
+
         time.sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":
