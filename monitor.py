@@ -2,7 +2,7 @@ import requests
 import time
 
 # CONFIGURATION
-WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL"
+WEBHOOK_URL = "https://discord.com/api/webhooks/1378744766937698499/v2V1YYqck0WF-V0VIg25t5Qw1CjkGkj0br0ttvJ8PddmWgHaB1KhwN1eXB5ZHalpqabA"
 KEYWORDS = [
     "nike dunks", "nike p-6000", "nike air force 1", 
     "nike reacts", "nike air max", "nike air max 95"
